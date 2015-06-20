@@ -1,5 +1,5 @@
 /**
- *  Original code for gen5 Copyright 2015 SmartThings, modified for use on gen 6 by Robert Vandervoort
+ *  Original code for Aeon multisensor gen5 Copyright 2015 SmartThings, modified for use gen5 MultiSensor 6 by Robert Vandervoort
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -83,6 +83,17 @@ metadata {
 		valueTile("illuminance", "device.illuminance", inactiveLabel: false) {
 			state "luminosity", label:'${currentValue} ${unit}', unit:"lux"
 		}
+/* add tile for ultraviolet        
+		valueTile("ultraviolet", "device.ultraviolet", inactiveLabel: false) {
+			state "uv", label:'${currentValue} ${unit}', unit:""
+		}
+        */
+/* add tile for vibration
+		standardTile("vibration", "device.vibration", width: 2, height: 2) {
+			state "active", label:'motion', icon:"st.motion.motion.active", backgroundColor:"#ff0000"
+			state "inactive", label:'no motion', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff"
+		}
+        */
 		valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
@@ -263,4 +274,3 @@ private secure(physicalgraph.zwave.Command cmd) {
 private secureSequence(commands, delay=200) {
 	delayBetween(commands.collect{ secure(it) }, delay)
 }
-
