@@ -12,17 +12,19 @@
  *
  */
 metadata {
-	definition (name: "Aeon Multisensor Gen6", namespace: "smartthings", author: "Robert Vandervoort") {
+	definition (name: "Aeon Multisensor Gen6", namespace: "robertvandervoort", author: "Robert Vandervoort") {
 		capability "Motion Sensor"
 		capability "Temperature Measurement"
 		capability "Relative Humidity Measurement"
 		capability "Illuminance Measurement"
+		capability "UV"
+		capability "Vibration Detection"
 		capability "Configuration"
 		capability "Sensor"
 		capability "Battery"
 
-		fingerprint deviceId: "0x0701", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x30,0x31,0x70,0x98,0x7A", outClusters:"0x5A"
-	}
+		fingerprint deviceId: "0x2101", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x30,0x31,0x70,0x7A,0xEF,0x5A,0x98,0x7A"
+		}
 
 	simulator {
 		status "no motion" : "command: 9881, payload: 00300300"
