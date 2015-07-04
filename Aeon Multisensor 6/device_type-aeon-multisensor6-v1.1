@@ -116,7 +116,7 @@ metadata {
 			"battery", "device.battery", inactiveLabel: false, decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-        standardTile(
+		standardTile(
         	"configureAfterSecure","device.configure",inactiveLabel: false,decoration: "flat") {
 				state "configure",label:'',action:"configureAfterSecure",icon:"st.secondary.configure"
 			}
