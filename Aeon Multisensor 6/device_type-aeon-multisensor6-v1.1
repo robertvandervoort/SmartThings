@@ -113,9 +113,9 @@ metadata {
                 state "inactive",label:'calm',icon:"st.motion.motion.inactive",backgroundColor:"#00ff00"
 			}
 		valueTile(
-        	"battery","device.battery",inactiveLabel: false,decoration: "flat") {
-            	state "battery",label:'${currentValue}% battery',unit:""
-			}
+			"battery", "device.battery", inactiveLabel: false, decoration: "flat") {
+			state "battery", label:'${currentValue}% battery', unit:""
+		}
         standardTile(
         	"configureAfterSecure","device.configure",inactiveLabel: false,decoration: "flat") {
 				state "configure",label:'',action:"configureAfterSecure",icon:"st.secondary.configure"
@@ -124,7 +124,7 @@ metadata {
         	"motion","vibration","temperature","humidity","illuminance","ultraviolet"
             ])
 		details([
-        	"motion","vibration","temperature","humidity","illuminance","ultraviolet","configureAfterSecure"
+        	"motion","vibration","temperature","humidity","illuminance","ultraviolet","configureAfterSecure","battery"
             ])
 	}
     preferences {
@@ -167,7 +167,7 @@ metadata {
         	"number",
             title: "Report data every X seconds",
             description: "A value in seconds, default is 60 / 8 minutes",
-            defaultValue: 60,
+            defaultValue: 4,
             required: true,
             displayDuringSetup: true
 	}
@@ -316,13 +316,13 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {
 
 def configureAfterSecure() {
 	log.debug "configureAfterSecure()"
-    log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
+    //log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
 
 	def PIRsens = 64
 	if (PIRsensitivity) {
 		PIRsens=PIRsensitivity.toInteger()
 	}
-	def ReportingInt = 60
+	def ReportingInt = 4
 	if (ReportingInterval) {
 		ReportingInt=ReportingInterval.toInteger()
 	}
@@ -342,10 +342,10 @@ def configureAfterSecure() {
 	if (ultravioletoffset) {
 		ultravioletoff=ultravioletoffset.toInteger()
 	}
-    log.debug "PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
+    //log.debug "PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
 	def request = [
 		// send temperature, humidity, illuminance, ultraviolet and battery
-		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 240),
+		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16|1),
 		// configure frequency of reporting 
 		zwave.configurationV1.configurationSet(parameterNumber: 0x6F,size: 4, scaledConfigurationValue: ReportingInt),
 		// configure PIR sensitivity
@@ -362,7 +362,7 @@ def configureAfterSecure() {
 		// Enable the function of vibration sensor
         zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 1),
 		// disable notification-style motion events
-		// zwave.notificationV3.notificationSet(notificationType: 7, notificationStatus: 0),
+		zwave.notificationV3.notificationSet(notificationType: 7, notificationStatus: 0),
         // configure temp offset
 		zwave.configurationV1.configurationSet(parameterNumber: 0xC9, size: 2, scaledConfigurationValue: tempoff),
         // configure humidity offset
@@ -387,7 +387,7 @@ def configureAfterSecure() {
 def configure() {
     //["delay 30000"] + secure(zwave.securityV1.securityCommandsSupportedGet())
     log.debug "configure()"
-   	def reportIntervalSecs = 60;
+   	def reportIntervalSecs = 4;
     	if (reportInterval) {
 		reportIntervalSecs = reportInterval.toInteger()
 		}
