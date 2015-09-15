@@ -189,15 +189,15 @@ metadata {
 		input "PIRsensitivity",
 	        "number",
     	    title: "PIR motion sensitivity",
-			description: "A value from 0-127 low to high sensitivity",
-			defaultValue: 64,
+			description: "A value from 0-5, from disabled to high sensitivity",
+			defaultValue: 1,
 			required: true,
 			displayDuringSetup: true
 		input "ReportingInterval",
         	"number",
-            title: "Report data every X minutes",
-            description: "A value in minutes, you can't go shorter than 60 seconds on battery power.",
-            defaultValue: 4,
+            title: "Report data interval",
+            description: "A value in seconds for mains power, you can't go shorter than 3600 on battery power.",
+            defaultValue: 60,
             required: true,
             displayDuringSetup: true
 	}
@@ -348,11 +348,11 @@ def configureAfterSecure() {
 	log.debug "configureAfterSecure()"
     //log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
 
-	def PIRsens = 64
+	def PIRsens = 1
 	if (PIRsensitivity) {
 		PIRsens=PIRsensitivity.toInteger()
 	}
-	def ReportingInt = 4
+	def ReportingInt = 60
 	if (ReportingInterval) {
 		ReportingInt=ReportingInterval.toInteger()
 	}
@@ -380,22 +380,20 @@ def configureAfterSecure() {
     //log.debug "PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
 	def request = [
 		// send temperature, humidity, illuminance, ultraviolet and battery
-		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16|1),
+		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16),
 		// configure frequency of reporting 
 		zwave.configurationV1.configurationSet(parameterNumber: 0x6F,size: 4, scaledConfigurationValue: ReportingInt),
-		// configure PIR sensitivity
-		zwave.configurationV1.configurationSet(parameterNumber: 0x06,size: 1, scaledConfigurationValue: PIRsens),
 		// send battery every 20 hours
 		zwave.configurationV1.configurationSet(parameterNumber: 0x66, size: 4, scaledConfigurationValue: 1),
 		zwave.configurationV1.configurationSet(parameterNumber: 0x70, size: 4, scaledConfigurationValue: 20*60*60),
-        // send no-motion report 60 seconds after motion stops
-		zwave.configurationV1.configurationSet(parameterNumber: 0x03, size: 2, scaledConfigurationValue: 60),
-		// enable motion sensor
-        zwave.configurationV1.configurationSet(parameterNumber: 0x04, size: 1, scaledConfigurationValue: 0),
-		// send binary sensor report instead of basic set for motion
+        // send no-motion report 20 seconds after motion stops
+		zwave.configurationV1.configurationSet(parameterNumber: 0x03, size: 2, scaledConfigurationValue: 20),
+		// enable motion sensor and set sensitivity
+        zwave.configurationV1.configurationSet(parameterNumber: 0x04, size: 1, scaledConfigurationValue: PIRsens),
+		// send binary sensor report for motion
 		zwave.configurationV1.configurationSet(parameterNumber: 0x05, size: 1, scaledConfigurationValue: 2),
 		// Enable the function of touch sensor
-        zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 1),
+        // zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 1),
 		// disable notification-style motion events
 		zwave.notificationV3.notificationSet(notificationType: 7, notificationStatus: 0),
         // configure temp offset
@@ -420,20 +418,25 @@ def configureAfterSecure() {
 }
 
 def configure() {
-    //["delay 30000"] + secure(zwave.securityV1.securityCommandsSupportedGet())
+    //["delay 20000"] + secure(zwave.securityV1.securityCommandsSupportedGet())
     log.debug "configure()"
 
-	def PIRsens = 64
+	def PIRsens = 1
 	if (PIRsensitivity) {
 		PIRsens=PIRsensitivity.toInteger()
 	}
-	def ReportingInt = 4
+	def ReportingInt = 60
 	if (ReportingInterval) {
 		ReportingInt=ReportingInterval.toInteger()
 	}
 	def tempoff = 0
 	if (tempoffset) {
-		tempoff=tempoffset.toInteger()
+		if(tempoffset < 0) {
+			tempoff=(255-tempoffset.tointeger())
+		}
+		if(tempoffset > 0) {
+			tempoff=(0+tempoffset.tointeger())
+		}
 	}
 	def humidityoff = 0
 	if (humidityoffset) {
@@ -450,28 +453,25 @@ def configure() {
     log.debug "PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
 
 	delayBetween([
-		// send temperature, humidity, illuminance, ultraviolet and battery every 8 minutes or as defined by preference
-		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16|1).format(),
+		// send temperature, humidity, illuminance, ultraviolet and battery every 60 minutes or seconds depending on power state
+		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 0x6F, size: 4, scaledConfigurationValue: ReportingInt).format(),
 
 		// send battery every 20 hours
 		zwave.configurationV1.configurationSet(parameterNumber: 0x66, size: 4, scaledConfigurationValue: 1).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 0x70, size: 4, scaledConfigurationValue: 20*60*60).format(),
 
-        // send no-motion report 60 seconds after motion stops
-		zwave.configurationV1.configurationSet(parameterNumber: 0x03, size: 2, scaledConfigurationValue: 60).format(),
+        // send no-motion report 20 seconds after motion stops
+		zwave.configurationV1.configurationSet(parameterNumber: 0x03, size: 2, scaledConfigurationValue: 20).format(),
 
-		// enable motion sensor
-        zwave.configurationV1.configurationSet(parameterNumber: 0x04, size: 1, scaledConfigurationValue: 1).format(),
+		// enable motion sensor and set min sensitivity
+        zwave.configurationV1.configurationSet(parameterNumber: 0x04, size: 1, scaledConfigurationValue: PIRsens).format(),
 
-		// send binary sensor report instead of basic set for motion
+		// send binary sensor report for motion
 		zwave.configurationV1.configurationSet(parameterNumber: 0x05, size: 1, scaledConfigurationValue: 2).format(),
 
-		// configure PIR sensitivity for multisensor 6 min to max 0-127 default 64
-        zwave.configurationV1.configurationSet(parameterNumber: 0x06, size: 1, scaledConfigurationValue: PIRsens).format(),
-
 		// Enable the function of touch sensor
-        zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 1).format(),
+        //zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 1).format(),
 
 		// disable notification-style motion events
 		zwave.notificationV3.notificationSet(notificationType: 7, notificationStatus: 0).format(),
