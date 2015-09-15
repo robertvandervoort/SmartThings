@@ -28,13 +28,16 @@ metadata {
 		capability "Configuration"
 		capability "Sensor"
 		capability "Battery"
+		
+		attribute "tamper", "enum", ["detected", "clear"]
+		
 		fingerprint deviceId: "0x2101", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x30,0x31,0x70,0x7A,0xEF,0x5A,0x98,0x7A"
 		}
 	simulator {
 		status "no motion" : "command: 9881, payload: 00300300"
 		status "motion"    : "command: 9881, payload: 003003FF"
-        status "no touch" : " command: 9881, payload: 0071050000000007030000"
-        status "touch" : "command: 9881, payload: 007105000000FF07030000"
+        status "clear" : " command: 9881, payload: 0071050000000007030000"
+        status "tamper" : "command: 9881, payload: 007105000000FF07030000"
         
         for (int i = 0; i <= 100; i += 20) {
 			status "temperature ${i}F": new physicalgraph.zwave.Zwave().securityV1.securityMessageEncapsulation().encapsulate(
@@ -135,9 +138,9 @@ metadata {
 				state "ultraviolet",label:'${currentValue} UV',unit:"UV"
 			}
 		standardTile(
-        	"touch","device.touch") {
-				state "touched",label:'touched',icon:"st.motion.motion.active",backgroundColor:"#ff0000"
-                state "inactive",label:'calm',icon:"st.motion.motion.inactive",backgroundColor:"#00ff00"
+        	"tamper","device.tamper") {
+				state "tamper",label:'tamper',icon:"st.motion.motion.active",backgroundColor:"#ff0000"
+                state "clear",label:'clear',icon:"st.motion.motion.inactive",backgroundColor:"#00ff00"
 			}
 		valueTile(
 			"battery", "device.battery", inactiveLabel: false, decoration: "flat") {
@@ -148,10 +151,10 @@ metadata {
 				state "configure",label:'',action:"configure",icon:"st.secondary.configure"
 			}
 		main([
-        	"motion","touch","temperature","humidity","illuminance","ultraviolet"
+        	"motion","tamper","temperature","humidity","illuminance","ultraviolet"
             ])
 		details([
-        	"motion","touch","temperature","humidity","illuminance","ultraviolet","battery","configureAfterSecure"
+        	"motion","tamper","temperature","humidity","illuminance","ultraviolet","battery","configureAfterSecure"
             ])
 	}
     preferences {
@@ -282,7 +285,7 @@ def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelR
 			map.unit = "%"
 			break;
 		case 27:
-        	map.name = "ultraviolet"
+        	map.name = "ultravioletIndex"
             map.value = cmd.scaledSensorValue.toInteger()
             map.unit = ""
             break;
@@ -294,7 +297,7 @@ def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelR
 
 def motionEvent(value) {
 	def map = [name: "motion"]
-	if (value == 255) {
+	if (value) {
 		map.value = "active"
 		map.descriptionText = "$device.displayName detected motion"
 	} else {
@@ -303,42 +306,35 @@ def motionEvent(value) {
 	}
 	createEvent(map)
 }
-def touchEvent(value) {
-	def map = [name: "touch"]
-	if (value == 255) {
-    	log.debug "-------------touched------------------"
-		map.value = "touched"
-		map.descriptionText = "$device.displayName detected touch"
-	} else { 
-		log.debug "-------------touch inactive-----------"
-		map.value = "inactive"
-		map.descriptionText = "$device.displayName touch has stopped"
-	}
-	createEvent(map)
-}
+
 def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
+	setConfigured()
 	motionEvent(cmd.sensorValue)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
-	log.debug "Basic Set 255 triggered motion event"
 	motionEvent(cmd.value)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cmd) {
-	if (cmd.notificationType == 7 && cmd.event == 8) {
-		log.debug "notification type 7 event 8 triggered motion event"
-		motionEvent(cmd.notificationStatus)
-	} else if (cmd.notificationType == 7 && cmd.event == 0) {
-		log.debug "notification type 7 event 0 motion and touch cleared"
-		motionEvent(0)
-		touchEvent(0)
-	} else if (cmd.notificationType == 7 && cmd.event == 3) {
-		log.debug "notification type 7 event 3 triggered touch event"
-		touchEvent(cmd.notificationStatus)
+	def result = []
+	if (cmd.notificationType == 7) {
+		switch (cmd.event) {
+			case 0:
+				result << motionEvent(0)
+				result << createEvent(name: "tamper", value: "clear", descriptionText: "$device.displayName tamper cleared")
+				break
+			case 3:
+				result << createEvent(name: "tamper", value: "detected", descriptionText: "$device.displayName was moved")
+				break
+			case 7:
+				result << motionEvent(1)
+				break
+		}
 	} else {
-		createEvent(descriptionText: cmd.toString(), isStateChange: false)
+		result << createEvent(descriptionText: cmd.toString(), isStateChange: false)
 	}
+	result
 }
 
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
