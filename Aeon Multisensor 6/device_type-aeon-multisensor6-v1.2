@@ -158,13 +158,15 @@ metadata {
 			"number",
 			title: "Temperature offset",
             description: "negative values reduce the monitored value positive ones add to it",
-            defaultValue: 0,
+            range: "..",
+			defaultValue: 0,
             required: false,
             displayDuringSetup: false
 		input "humidityoffset",
         	"number",
             title: "Humidity offset",
             description: "negative values reduce the monitored value positive ones add to it",
+			range: "..",
 			defaultValue: 0,
 			required: false,
             displayDuringSetup: false
@@ -172,14 +174,16 @@ metadata {
           	"number",
             title: "Luminance offset",
             description: "negative values reduce the monitored value positive ones add to it",
-            defaultValue: 0,
+            range: "..",
+			defaultValue: 0,
             required: false,
 	        displayDuringSetup: false
 		input "ultravioletoffset",
           	"number",
             title: "Ultraviolet offset",
             description: "negative values reduce the monitored value positive ones add to it",
-            defaultValue: 0,
+            range: "..",
+			defaultValue: 0,
 	        required: false,
 			displayDuringSetup: false
 		input "PIRsensitivity",
@@ -191,8 +195,8 @@ metadata {
 			displayDuringSetup: true
 		input "ReportingInterval",
         	"number",
-            title: "Report data every X seconds",
-            description: "A value in seconds, default is 60 / 8 minutes",
+            title: "Report data every X minutes",
+            description: "A value in minutes, you can't go shorter than 60 seconds on battery power.",
             defaultValue: 4,
             required: true,
             displayDuringSetup: true
@@ -354,7 +358,12 @@ def configureAfterSecure() {
 	}
 	def tempoff = 0
 	if (tempoffset) {
-		tempoff=tempoffset.toInteger()
+		if(tempoffset < 0) {
+			tempoff=(255-tempoffset.tointeger())
+		}
+		if(tempoffset > 0) {
+			tempoff=(0+tempoffset.tointeger())
+		}
 	}
 	def humidityoff = 0
 	if (humidityoffset) {
