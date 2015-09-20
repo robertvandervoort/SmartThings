@@ -13,7 +13,7 @@
  *
  */
 metadata {
-	definition (name: "Aeon Multisensor 6", namespace: "robertvandervoort", author: "Robert Vandervoort") {
+	definition (name: "rv Aeon Multisensor 6", namespace: "robertvandervoort", author: "Robert Vandervoort") {
 		capability "Motion Sensor"
 		capability "Touch Sensor"
 		capability "Temperature Measurement"
@@ -25,8 +25,8 @@ metadata {
 		capability "Battery"
 		
 		attribute "tamper", "enum", ["detected", "clear"]
-		
-		fingerprint deviceId: "0x2101", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x30,0x31,0x70,0x7A,0xEF,0x5A,0x98,0x7A"
+		// CC supported 94, 134, 114, 132, 89, 133, 115, 113, 128, 48, 49, 112, 152, 122
+		fingerprint deviceId: "0x2101", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x30,0x31,0x70,0xEF,0x5A,0x98,0x7A"
 		}
 	simulator {
 		status "no motion" : "command: 9881, payload: 00300300"
@@ -61,7 +61,7 @@ metadata {
 			).incomingMessage()
 		}
 		for (int i = 0; i <= 11; i += 1) {
-			status "ultraviolet ${i}": new physicalgraph.zwave.Zwave().securityV1.securityMessageEncapsulation().encapsulate(
+			status "ultravioletultravioletIndex ${i}": new physicalgraph.zwave.Zwave().securityV1.securityMessageEncapsulation().encapsulate(
 				new physicalgraph.zwave.Zwave().sensorMultilevelV2.sensorMultilevelReport(
                 scaledSensorValue: i,
                 sensorType: 27
@@ -129,8 +129,8 @@ metadata {
 				]
 			}
 		valueTile(
-        	"ultraviolet","device.ultraviolet",inactiveLabel: false) {
-				state "ultraviolet",label:'${currentValue} UV',unit:"UV"
+        	"ultravioletIndex","device.ultravioletIndex",inactiveLabel: false) {
+				state "ultravioletIndex",label:'${currentValue} UV INDEX',unit:""
 			}
 		standardTile(
         	"tamper","device.tamper") {
@@ -142,14 +142,18 @@ metadata {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
 		standardTile(
-        	"configure","device.configure",inactiveLabel: false,decoration: "flat") {
-				state "configure",label:'',action:"configure",icon:"st.secondary.configure"
+        	"configure","device.configure",inactiveLabel: false, decoration: "flat") {
+				state "configure", label:'insecure config', action:"configure", icon:"st.secondary.tools"
+			}
+        standardTile(
+        	"configureAfterSecure", "device.configure", inactiveLabel: false, decoration: "flat") {
+				state "configure", label:'secure config', action:"configureAfterSecure", icon:"st.secondary.tools"
 			}
 		main([
-        	"motion","tamper","temperature","humidity","illuminance","ultraviolet"
+        	"motion","tamper","temperature","humidity","illuminance","ultravioletIndex"
             ])
 		details([
-        	"motion","tamper","temperature","humidity","illuminance","ultraviolet","battery","configureAfterSecure"
+        	"motion","tamper","temperature","humidity","illuminance","ultravioletIndex","battery","configure","configureAfterSecure"
             ])
 	}
     preferences {
@@ -195,8 +199,8 @@ metadata {
 		input "ReportingInterval",
         	"number",
             title: "Report data interval",
-            description: "A value in seconds for mains power, you can't go shorter than 3600 on battery power.",
-            defaultValue: 60,
+            description: "A value in seconds.",
+            defaultValue: 300,
             required: true,
             displayDuringSetup: true
 	}
@@ -222,8 +226,9 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv1.WakeUpNotification cmd)
 
 	if (!isConfigured()) {
 		// we're still in the process of configuring a newly joined device
-		log.debug("not sending wakeUpNoMoreInformation yet")
+		log.debug("have not sent config yet - not sending wakeUpNoMoreInformation yet")
         result += response(configureAfterSecure())
+        result += response(configure())
 	} else {
 		result += response(zwave.wakeUpV1.wakeUpNoMoreInformation())
 	}
@@ -243,7 +248,7 @@ def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulat
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityCommandsSupportedReport cmd) {
     log.debug "Received SecurityCommandsSupportedReport"
-	response(configureAfterSecure())
+	// response(configureAfterSecure())
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
@@ -303,7 +308,7 @@ def motionEvent(value) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
-	setConfigured()
+	// setConfigured()
 	motionEvent(cmd.sensorValue)
 }
 
@@ -337,24 +342,24 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {
 }
 
 def configureAfterSecure() {
-	log.debug "configureAfterSecure()"
-    //log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
+	log.debug "configureAfterSecure"
+    log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
 
 	def PIRsens = 1
 	if (PIRsensitivity) {
 		PIRsens=PIRsensitivity.toInteger()
 	}
-	def ReportingInt = 60
+	def ReportingInt = 300
 	if (ReportingInterval) {
 		ReportingInt=ReportingInterval.toInteger()
 	}
 	def tempoff = 0
 	if (tempoffset) {
 		if(tempoffset < 0) {
-			tempoff=(255-tempoffset.tointeger())
+			tempoff=(255-tempoffset)
 		}
 		if(tempoffset > 0) {
-			tempoff=(0+tempoffset.tointeger())
+			tempoff=(0+tempoffset)
 		}
 	}
 	def humidityoff = 0
@@ -371,7 +376,9 @@ def configureAfterSecure() {
 	}
     //log.debug "PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
 	def request = [
-		// send temperature, humidity, illuminance, ultraviolet and battery
+		// set wakeup interval to 5 mins
+		zwave.wakeUpV1.wakeUpIntervalSet(seconds:300, nodeid:zwaveHubNodeId),
+		// send temperature, humidity, illuminance, ultraviolet based on reporting interval preference default 5 mins
 		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16),
 		// configure frequency of reporting 
 		zwave.configurationV1.configurationSet(parameterNumber: 0x6F,size: 4, scaledConfigurationValue: ReportingInt),
@@ -404,30 +411,31 @@ def configureAfterSecure() {
 		zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
     ]
 	
-    setConfigured()
     //log.debug request
     secureSequence(request) + ["delay 20000", zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
+	setConfigured()
 }
 
 def configure() {
     //["delay 20000"] + secure(zwave.securityV1.securityCommandsSupportedGet())
-    log.debug "configure()"
+    log.debug "configure"
+	log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
 
 	def PIRsens = 1
 	if (PIRsensitivity) {
 		PIRsens=PIRsensitivity.toInteger()
 	}
-	def ReportingInt = 60
+	def ReportingInt = 300
 	if (ReportingInterval) {
 		ReportingInt=ReportingInterval.toInteger()
 	}
 	def tempoff = 0
 	if (tempoffset) {
 		if(tempoffset < 0) {
-			tempoff=(255-tempoffset.tointeger())
+			tempoff=(255-tempoffset)
 		}
 		if(tempoffset > 0) {
-			tempoff=(0+tempoffset.tointeger())
+			tempoff=(0+tempoffset)
 		}
 	}
 	def humidityoff = 0
@@ -445,7 +453,9 @@ def configure() {
     log.debug "PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
 
 	delayBetween([
-		// send temperature, humidity, illuminance, ultraviolet and battery every 60 minutes or seconds depending on power state
+		// set wakeup interval to 5 minutes
+		zwave.wakeUpV1.wakeUpIntervalSet(seconds:300, nodeid:zwaveHubNodeId).format(),
+		// send temperature, humidity, illuminance, ultraviolet based on reporting interval preference default 5 mins
 		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 128|64|32|16).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 0x6F, size: 4, scaledConfigurationValue: ReportingInt).format(),
 
@@ -486,8 +496,8 @@ def configure() {
         // Can use the zwaveHubNodeId variable to add the hub to the device's associations:
 		zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
     ])	
-    setConfigured()
 	zwave.wakeUpV1.wakeUpNoMoreInformation().format()
+	setConfigured()
 }
 
 def setConfigured() {
@@ -495,8 +505,7 @@ def setConfigured() {
 }
 
 def isConfigured() {
-	Boolean configured = device.getDataValue(["configured"]) as Boolean
-	
+	Boolean configured = device.getDataValue(["configured"]) as Boolean	
 	return configured
 }
 
@@ -510,5 +519,5 @@ private secureSequence(commands, delay=200) {
 def updated() {
 	log.debug "updated()"
     log.debug "PIRsensitivity: $PIRsensitivity, Reporting Interval: $ReportingInterval, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset, UV offset: $ultravioletoffset"
-    configure()
+    //configure()
 }
