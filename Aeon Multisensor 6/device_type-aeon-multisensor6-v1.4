@@ -386,15 +386,30 @@ def configure() {
 	}
 	def humidityoff = 0
 	if (humidityoffset) {
-		humidityoff=humidityoffset.toInteger()
+		if(humidityoffset < 0) {
+			humidityoff=(255-humidityoffset)
+		}
+		if(humidityoffset > 0) {
+			humidityoff=(0+humidityoffset)
+		}
 	}
 	def luminanceoff = 0
 	if (luminanceoffset) {
-		luminanceoff=luminanceoffset.toInteger()
+		if(luminanceoffset < 0) {
+			luminanceoff=(255-luminanceoffset)
+		}
+		if(luminanceoffset > 0) {
+			luminanceoff=(0+luminanceoffset)
+		}
 	}
 	def ultravioletoff = 0
 	if (ultravioletoffset) {
-		ultravioletoff=ultravioletoffset.toInteger()
+		if(ultravioletoffset < 0) {
+			ultravioletoff=(255-ultravioletoffset)
+		}
+		if(ultravioletoffset > 0) {
+			ultravioletoff=(0 + ultravioletoffset)
+		}
 	}
     //log.debug "Setting - PIRsens: $PIRsens, ReportingInt: $ReportingInt, Tempoffset: $tempoff, Humidityoff: $humidityoff, Luminanceoff: $luminanceoff, UVoff: $ultravioletoff"
 	def request = [
