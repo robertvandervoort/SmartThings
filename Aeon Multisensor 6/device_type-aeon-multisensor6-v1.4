@@ -62,7 +62,7 @@
             	)
 			).incomingMessage()
 		}
-		for (int i in [0, 20, 89, 100, 200, 500, 1000]) {
+		for (int i in [0, 1, 2, 8, 12, 16, 20, 24, 30, 64, 82, 100, 200, 500, 1000]) {
 			status "illuminance ${i} lux": new physicalgraph.zwave.Zwave().securityV1.securityMessageEncapsulation().encapsulate(
 				new physicalgraph.zwave.Zwave().sensorMultilevelV2.sensorMultilevelReport(
                 scaledSensorValue: i,
@@ -116,25 +116,12 @@
         	"illuminance","device.illuminance",inactiveLabel: false) {
             	state "luminosity",label:'${currentValue} ${unit}', unit:"lux", backgroundColors:[
                 	[value: 0, color: "#000000"],
-                    [value: 47, color: "#1A1A0A"],
-                    [value: 94, color: "#333314"],
-					[value: 141, color: "#4C4C1F"],
-					[value: 188, color: "#666629"],
-					[value: 235, color: "#808033"],
-					[value: 282, color: "#99993D"],
-					[value: 329, color: "#B2B247"],
-					[value: 376, color: "#CCCC52"],
-					[value: 423, color: "#E6E65C"],
-					[value: 470, color: "#FFFF66"],
-					[value: 517, color: "#FFFF75"],
-                    [value: 564, color: "#FFFF85"],
-                    [value: 611, color: "#FFFF94"],
-                    [value: 658, color: "#FFFFA3"],
-                    [value: 705, color: "#FFFFB2"],
-                    [value: 752, color: "#FFFFC2"],
-                    [value: 799, color: "#FFFFD1"],
-                    [value: 846, color: "#FFFFE0"],
-                    [value: 900, color: "#FFFFF0"],
+                    [value: 1, color: "#060053"],
+                    [value: 3, color: "#3E3900"],
+                    [value: 12, color: "#8E8400"],
+					[value: 24, color: "#C5C08B"],
+					[value: 36, color: "#DAD7B6"],
+					[value: 128, color: "#F3F2E9"],
                     [value: 1000, color: "#FFFFFF"]
 				]
 			}
@@ -156,10 +143,10 @@
 				state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
 			}
 		main([
-        	"motion","tamper","temperature","humidity","illuminance","ultravioletIndex"
+        	"temperature","humidity","illuminance","motion","tamper","ultravioletIndex"
             ])
 		details([
-        	"motion","tamper","temperature","humidity","illuminance","ultravioletIndex","battery","configure","configureAfterSecure"
+        	"temperature","humidity","illuminance","motion","tamper","ultravioletIndex","battery","configure"
             ])
 	}
 	
