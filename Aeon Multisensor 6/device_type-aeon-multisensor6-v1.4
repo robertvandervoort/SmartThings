@@ -97,7 +97,7 @@
             	state "active",label:'motion',icon:"st.motion.motion.active",backgroundColor:"#53a7c0"
                 state "inactive",label:'no motion',icon:"st.motion.motion.inactive",backgroundColor:"#ffffff"
 			}
-		valueTile("temperature","device.temperature",inactiveLabel: false) {
+		valueTile("temperature","device.temperature") {
             	state "temperature",label:'${currentValue}°',backgroundColors:[
                 	[value: 32, color: "#153591"],
                     [value: 44, color: "#1e9cbb"],
@@ -109,11 +109,11 @@
 				]
 			}
 		valueTile(
-        	"humidity","device.humidity",inactiveLabel: false) {
+        	"humidity","device.humidity") {
             	state "humidity",label:'RH ${currentValue} %',unit:""
 			}
 		valueTile(
-        	"illuminance","device.illuminance",inactiveLabel: false) {
+        	"illuminance","device.illuminance") {
             	state "luminosity",label:'${currentValue} ${unit}', unit:"lux", backgroundColors:[
                 	[value: 0, color: "#000000"],
                     [value: 1, color: "#060053"],
@@ -126,7 +126,7 @@
 				]
 			}
 		valueTile(
-        	"ultravioletIndex","device.ultravioletIndex",inactiveLabel: false) {
+        	"ultravioletIndex","device.ultravioletIndex") {
 				state "ultravioletIndex",label:'${currentValue} UV INDEX',unit:""
 			}
 		standardTile(
@@ -135,11 +135,11 @@
                 state "clear",label:'clear',icon:"st.motion.motion.inactive",backgroundColor:"#00ff00"
 			}
 		valueTile(
-			"battery", "device.battery", inactiveLabel: false, decoration: "flat") {
+			"battery", "device.battery", decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
 		standardTile(
-        	"configure","device.configure",inactiveLabel: false, decoration: "flat") {
+        	"configure","device.configure", decoration: "flat") {
 				state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
 			}
 		main([
