@@ -429,16 +429,16 @@ def configure() {
 		// zwave.notificationV3.notificationSet(notificationType: 7, notificationStatus: 0),
 		
         // configure temp offset
-		zwave.configurationV1.configurationSet(parameterNumber: 0xC9, size: 2, scaledConfigurationValue: tempoff),
+		zwave.configurationV1.configurationSet(parameterNumber: 0xC9, size: 1, scaledConfigurationValue: tempoff),
 		
         // configure humidity offset
-		zwave.configurationV1.configurationSet(parameterNumber: 0xCA, size: 2, scaledConfigurationValue: humidityoff),
+		zwave.configurationV1.configurationSet(parameterNumber: 0xCA, size: 1, scaledConfigurationValue: humidityoff),
 		
         // configure luminance offset
 		zwave.configurationV1.configurationSet(parameterNumber: 0xCB, size: 2, scaledConfigurationValue: luminanceoff),
 		
         // configure ultraviolet offset
-		zwave.configurationV1.configurationSet(parameterNumber: 0xCC, size: 2, scaledConfigurationValue: ultravioletoff), 
+		zwave.configurationV1.configurationSet(parameterNumber: 0xCC, size: 1, scaledConfigurationValue: ultravioletoff), 
 
 		zwave.batteryV1.batteryGet(),
 		zwave.sensorBinaryV2.sensorBinaryGet(),
