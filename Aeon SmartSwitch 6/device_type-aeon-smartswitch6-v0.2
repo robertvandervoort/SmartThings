@@ -302,12 +302,12 @@ def configure() {
 		}
 	def ledBehave = 0
     	if (ledBehavior) {
-        	ledBehave=ledBehavior
+        	ledBehave=ledBehavior.toInteger()
         }
     log.debug "Sending configure commands - monitorInterval '${monitorInt}', ledBehavior '${ledBehave}'"
 	def request = [
     	// Reset switch configuration to defaults
-        zwave.configurationV1.configurationSet(parameterNumber: 255, size: 1, scaledConfigurationValue: 1),
+        // zwave.configurationV1.configurationSet(parameterNumber: 255, size: 1, scaledConfigurationValue: 1),
 		// set LED behavior 0 energy mode 1 momentary display 2 night light
 		zwave.configurationV1.configurationSet(parameterNumber: 81, size: 1, scaledConfigurationValue: ledBehave),
 		// Which reports need to send in Report group 1
@@ -364,6 +364,6 @@ private command(physicalgraph.zwave.Command cmd) {
 	}
 }
 
-private commands(commands, delay=1000) {
+private commands(commands, delay=500) {
 	delayBetween(commands.collect{ command(it) }, delay)
 }
