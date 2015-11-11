@@ -138,6 +138,10 @@ It may help to select just the newly added sensor from the available items to se
 				]
 			}
 		valueTile(
+        	"humidity","device.humidity") {
+           	state "humidity",label:'RH ${currentValue} %',unit:""
+			}
+		valueTile(
         	"illuminance","device.illuminance", width: 2, height: 2) {
             	state "luminosity",label:'${currentValue} ${unit}', unit:"lux", backgroundColors:[
                 	[value: 0, color: "#000000"],
@@ -175,7 +179,7 @@ It may help to select just the newly added sensor from the available items to se
         	"main"
             ])
 		details([
-        	"main","illuminance","ultravioletIndex","motion","tamper","battery","configure"
+        	"main","humidity","illuminance","ultravioletIndex","motion","tamper","battery","configure"
             ])
 	}
 	
