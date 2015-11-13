@@ -284,6 +284,19 @@ def off() {
     commands(request)
 }
 
+def setLevel(value) {
+	def valueaux = value as Integer
+	def level = Math.min(valueaux, 99)
+	delayBetween ([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV1.switchMultilevelGet().format()], 5000)
+}
+
+def setLevel(value, duration) {
+	def valueaux = value as Integer
+	def level = Math.min(valueaux, 99)
+	def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
+	zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format()
+}
+
 def setColor(value) {
 	def result = []
 	log.debug "setColor: ${value}"
