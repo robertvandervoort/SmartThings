@@ -133,14 +133,20 @@
             range: "0..100",
             required: false,
             displayduringSetup: true
+		input "debugOutput", "boolean", 
+			title: "Enable debug logging?",
+			defaultValue: false,
+			displayDuringSetup: true
 	}
 }
 
 def updated()
 {
+	state.debug = ("true" == debugOutput)
 	if (state.sec && !isConfigured()) {
 		// in case we miss the SCSR
 		response(configure())
+		
 	}
 }
 
@@ -157,14 +163,14 @@ def parse(String description)
 			result = zwaveEvent(cmd)
 		}
 	}
-	// log.debug "Parsed '${description}' to ${result.inspect()}"
+	// if (state.debug) log.debug "Parsed '${description}' to ${result.inspect()}"
 	return result
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
 	def encapsulatedCommand = cmd.encapsulatedCommand([0x25: 1, 0x26: 1, 0x27: 1, 0x32: 3, 0x33: 3, 0x59: 1, 0x70: 1, 0x72: 2, 0x73: 1, 0x82: 1, 0x85: 2, 0x86: 2])
 	state.sec = 1
-	// log.debug "encapsulated: ${encapsulatedCommand}"
+	if (state.debug) log.debug "encapsulated: ${encapsulatedCommand}"
 	if (encapsulatedCommand) {
 		zwaveEvent(encapsulatedCommand)
 	} else {
@@ -178,7 +184,7 @@ def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityCommandsSupported
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.powerlevelv1.PowerlevelTestNodeReport cmd) {
-	log.debug "===Power level test node report received=== ${device.displayName}: statusOfOperation: ${cmd.statusOfOperation} testFrameCount: ${cmd.testFrameCount} testNodeid: ${cmd.testNodeid}"
+	if (state.debug) log.debug "===Power level test node report received=== ${device.displayName}: statusOfOperation: ${cmd.statusOfOperation} testFrameCount: ${cmd.testFrameCount} testNodeid: ${cmd.testNodeid}"
 	def request = [
         physicalgraph.zwave.commands.powerlevelv1.PowerlevelGet()
     ]
@@ -186,11 +192,11 @@ def zwaveEvent(physicalgraph.zwave.commands.powerlevelv1.PowerlevelTestNodeRepor
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
-    log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} parameter ${cmd.parameterNumber} with a byte size of ${cmd.size} is set to ${cmd.configurationValue}"
+    if (state.debug) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} parameter ${cmd.parameterNumber} with a byte size of ${cmd.size} is set to ${cmd.configurationValue}"
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport cmd) {
-    log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} parameter ${cmd.parameterNumber} with a byte size of ${cmd.size} is set to ${cmd.configurationValue}"
+    if (state.debug) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} parameter ${cmd.parameterNumber} with a byte size of ${cmd.size} is set to ${cmd.configurationValue}"
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd) {
@@ -256,50 +262,67 @@ def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cm
 	[name: "switch", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true]
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv1.SwitchMultilevelReport cmd)
+{
+	[name: "level", value: cmd.value, type: "digital", displayed: true, isStateChange: true]
+}
+	
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinarySet cmd)
 {
     [name: "switch", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true]
 }
 
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
-	log.debug "Unhandled: $cmd"
+	if (state.debug) log.debug "Unhandled: $cmd sent to ${device.displayName}"
     createEvent(descriptionText: cmd.toString(), isStateChange: false)
 }
 
 def on() {
+	if (state.debug) log.debug "turning on ${device.displayName}"
 	def request = [
 		zwave.basicV1.basicSet(value: 0xFF),
 	    zwave.basicV1.basicGet(),
-		zwave.switchBinaryV1.switchBinaryGet()
+		zwave.switchBinaryV1.switchBinaryGet(),
+		zwave.switchMultilevelV1.switchMultilevelGet()
 	]
     commands(request)
 }
 
 def off() {
+	if (state.debug) log.debug "turning off ${device.displayName}"
 	def request = [
 		zwave.basicV1.basicSet(value: 0x00),
         zwave.basicV1.basicGet(),
-		zwave.switchBinaryV1.switchBinaryGet()
+		zwave.switchBinaryV1.switchBinaryGet(),
+		zwave.switchMultilevelV1.switchMultilevelGet()
 	]
     commands(request)
 }
 
 def setLevel(value) {
+	if (state.debug) log.debug "setting level to ${value} on ${device.displayName}"
 	def valueaux = value as Integer
 	def level = Math.min(valueaux, 99)
-	delayBetween ([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV1.switchMultilevelGet().format()], 5000)
+	def request = [
+		zwave.basicV1.basicSet(value: level),
+		zwave.switchMultilevelV1.switchMultilevelGet()
+		]
+	commands(request)	
 }
 
 def setLevel(value, duration) {
 	def valueaux = value as Integer
 	def level = Math.min(valueaux, 99)
 	def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
-	zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format()
+	def request = [
+		zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration)
+		]
+	commands(request)	
 }
 
 def setColor(value) {
 	def result = []
-	log.debug "setColor: ${value}"
+	if (state.debug) log.debug "setColor: ${value}"
 	if (value.hex) {
 		def c = value.hex.findAll(/[0-9a-fA-F]{2}/).collect { Integer.parseInt(it, 16) }
         result << zwave.configurationV1.configurationSet(parameterNumber: 83, size: 3, configurationValue: [c[0], c[1], c[2]])
@@ -309,9 +332,11 @@ def setColor(value) {
 }
 
 def poll() {
+	if (state.debug) log.debug "poll request sent to ${device.displayName}"
 	def request = [
 		zwave.switchBinaryV1.switchBinaryGet(),
         zwave.basicV1.basicGet(),
+		zwave.switchMultilevelV1.switchMultilevelGet(),
 		zwave.meterV3.meterGet(scale: 0),	//kWh
         zwave.meterV3.meterGet(scale: 1),	//kVAh
 		zwave.meterV3.meterGet(scale: 2),	//Wattage
@@ -323,14 +348,17 @@ def poll() {
 }
 
 def refresh() {
+	if (state.debug) log.debug "refresh request sent to ${device.displayName}"
 	def request = [
         zwave.basicV1.basicGet(),
+		zwave.switchMultilevelV1.switchMultilevelGet(),
 		zwave.switchBinaryV1.switchBinaryGet()
 	]
     commands(request)
 }
 
 def reset() {
+	if (state.debug) log.debug "reset request sent to ${device.displayName}"
 	def request = [
 		zwave.meterV3.meterReset(),
 		zwave.meterV3.meterGet(scale: 0),	//kWh
@@ -344,6 +372,13 @@ def reset() {
 }
 
 def configure() {
+	if (state.debug) {
+    	if (state.sec) {
+        	log.debug "secure configuration being sent to ${device.displayName}"
+            }
+        else
+        	if (state.debug) log.debug "configuration being sent to ${device.displayName}"
+		}            
     def monitorInt = 60
 		if (monitorInterval) {
 			monitorInt=monitorInterval.toInteger()
@@ -356,7 +391,7 @@ def configure() {
     	if (ledBrightness) {
         	ledBright=ledBrightness.toInteger()
 		}
-    log.debug "Sending configure commands - monitorInterval '${monitorInt}', ledBehavior '${ledBehave}'"
+    if (state.debug) log.debug "Sending configure commands - monitorInterval '${monitorInt}', ledBehavior '${ledBehave}'"
 	def request = [
     	// Reset switch configuration to defaults
         // zwave.configurationV1.configurationSet(parameterNumber: 255, size: 1, scaledConfigurationValue: 1),
@@ -379,7 +414,9 @@ def configure() {
 		// Interval to send Report group 3
 		zwave.configurationV1.configurationSet(parameterNumber: 113, size: 4, scaledConfigurationValue: 0),
         
-        // get LED behavior
+        // get notification behavior
+		zwave.configurationV1.configurationGet(parameterNumber: 80),
+		// get LED behavior
 		zwave.configurationV1.configurationGet(parameterNumber: 81),
     	// get night light RGB value
 		zwave.configurationV1.configurationGet(parameterNumber: 83),
