@@ -161,11 +161,6 @@ It may help to select just the newly added sensor from the available items to se
 			state("active", label:'tamper', icon:"st.motion.acceleration.active", backgroundColor:"#ff0000")
 			state("inactive", label:'clear', icon:"st.motion.acceleration.inactive", backgroundColor:"#00ff00")
 		}
-		/*standardTile(
-        	"tamper","device.tamper", width: 2, height: 2) {
-				state "tamper",label:'tamper',icon:"st.motion.motion.active",backgroundColor:"#ff0000"
-                state "clear",label:'clear',icon:"st.motion.motion.inactive",backgroundColor:"#00ff00"
-			}*/
 		valueTile(
 			"battery", "device.battery", decoration: "flat", width: 2, height: 2) {
 			state "battery", label:'${currentValue}% battery', unit:""
@@ -178,7 +173,7 @@ It may help to select just the newly added sensor from the available items to se
         	"main"
             ])
 		details([
-        	"main","humidity","illuminance","ultravioletIndex","motion","tamper","battery","configure"
+        	"main","humidity","illuminance","ultravioletIndex","motion","acceleration","battery","configure"
             ])
 	}
 	
