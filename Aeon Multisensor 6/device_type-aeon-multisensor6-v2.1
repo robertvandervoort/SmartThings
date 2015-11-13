@@ -126,22 +126,10 @@ It may help to select just the newly added sensor from the available items to se
             	state "active",label:'motion',icon:"st.motion.motion.active",backgroundColor:"#53a7c0"
                 state "inactive",label:'no motion',icon:"st.motion.motion.inactive",backgroundColor:"#ffffff"
 			}
-		valueTile("temperature","device.temperature", width: 2, height: 2) {
-            	state "temperature",label:'${currentValue}°',backgroundColors:[
-                	[value: 32, color: "#153591"],
-                    [value: 44, color: "#1e9cbb"],
-                    [value: 59, color: "#90d2a7"],
-					[value: 74, color: "#44b621"],
-					[value: 84, color: "#f1d801"],
-					[value: 92, color: "#d04e00"],
-					[value: 98, color: "#bc2323"]
-				]
-			}
 		valueTile("humidity","device.humidity", width: 2, height: 2) {
            	state "humidity",label:'RH ${currentValue} %',unit:""
 			}
-		valueTile(
-        	"illuminance","device.illuminance", width: 2, height: 2) {
+		valueTile("illuminance","device.illuminance", width: 2, height: 2) {
             	state "luminosity",label:'${currentValue} ${unit}', unit:"lux", backgroundColors:[
                 	[value: 0, color: "#000000"],
                     [value: 1, color: "#060053"],
@@ -153,28 +141,21 @@ It may help to select just the newly added sensor from the available items to se
                     [value: 1000, color: "#FFFFFF"]
 				]
 			}
-		valueTile(
-        	"ultravioletIndex","device.ultravioletIndex", width: 2, height: 2) {
+		valueTile("ultravioletIndex","device.ultravioletIndex", width: 2, height: 2) {
 				state "ultravioletIndex",label:'${currentValue} UV INDEX',unit:""
 			}
 		standardTile("acceleration", "device.acceleration", width: 2, height: 2) {
 			state("active", label:'tamper', icon:"st.motion.acceleration.active", backgroundColor:"#ff0000")
 			state("inactive", label:'clear', icon:"st.motion.acceleration.inactive", backgroundColor:"#00ff00")
 		}
-		valueTile(
-			"battery", "device.battery", decoration: "flat", width: 2, height: 2) {
+		valueTile("battery", "device.battery", decoration: "flat", width: 2, height: 2) {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-		standardTile(
-        	"configure","device.configure", decoration: "flat", width: 2, height: 2) {
-				state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
-			}
-		main([
-        	"main"
-            ])
-		details([
-        	"main","humidity","illuminance","ultravioletIndex","motion","acceleration","battery","configure"
-            ])
+		standardTile("configure","device.configure", decoration: "flat", width: 2, height: 2) {
+			state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
+		}
+		main(["main"])
+		details(["main","humidity","illuminance","ultravioletIndex","motion","acceleration","battery","configure"])
 	}
 	
     preferences {
@@ -501,6 +482,6 @@ private command(physicalgraph.zwave.Command cmd) {
 	}
 }
 
-private commands(commands, delay=200) {
+private commands(commands, delay=1000) {
 	delayBetween(commands.collect{ command(it) }, delay)
 }
