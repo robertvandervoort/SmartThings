@@ -170,7 +170,10 @@ def zwaveEvent(physicalgraph.zwave.commands.hailv1.Hail cmd) {
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd)
 {
 	if (state.debug) log.debug "doorbell value:${cmd.value}"
-	[name: "alarm", value: cmd.value ? "on" : "off", displayed: true, isStateChange: true]
+    [
+    	createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true]),
+    	createEvent([name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true])
+    ]
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) 
