@@ -387,6 +387,7 @@ def configure() {
 		luminanceoff=luminanceoffset
 	}
     if (state.debug) log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
+    setConfigured()
 	def request = [
 		// set wakeup interval to 20 mins
 		zwave.wakeUpV1.wakeUpIntervalSet(seconds:1200, nodeid:zwaveHubNodeId),
@@ -431,11 +432,11 @@ def configure() {
 		zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
     ]
 	commands(request) + ["delay 20000", zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
-	setConfigured()
 }
 
 private setConfigured() {
 	updateDataValue("configured", "true")
+    return []
 }
 
 private isConfigured() {
