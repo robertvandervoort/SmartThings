@@ -27,7 +27,6 @@
 		capability "Sensor"
 		capability "Battery"
 		
-		// CCs supported - 94, 134, 114, 132, 89, 133, 115, 113, 128, 48, 49, 112, 152, 122
         // RAW Description: 0 0 0x0701 0 0 0 e 0x5E 0x98 0x86 0x72 0x5A 0x85 0x59 0x73 0x80 0x71 0x31 0x70 0x84 0x7A   										 
 		attribute "tamper", "enum", ["detected", "clear"]
 		fingerprint deviceId: "0x0701", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x31,0x70,0x5A,0x98,0x7A"
@@ -61,14 +60,6 @@
 				new physicalgraph.zwave.Zwave().sensorMultilevelV2.sensorMultilevelReport(
                 scaledSensorValue: i,
                 sensorType: 3
-                )
-			).incomingMessage()
-		}
-		for (int i = 0; i <= 11; i += 1) {
-			status "ultravioletultravioletIndex ${i}": new physicalgraph.zwave.Zwave().securityV1.securityMessageEncapsulation().encapsulate(
-				new physicalgraph.zwave.Zwave().sensorMultilevelV2.sensorMultilevelReport(
-                scaledSensorValue: i,
-                sensorType: 27
                 )
 			).incomingMessage()
 		}
@@ -195,7 +186,7 @@ def parse(String description)
 		result = createEvent( name: "secureInclusion", value: "failed", isStateChange: true,
 			descriptionText: "This sensor failed to complete the network security key exchange. If you are unable to control it via SmartThings, you must remove it from your network and add it again.")
 	} else if (description != "updated") {
-		def cmd = zwave.parse(description, [0x31: 5, 0x7A: 2, 0x84: 2, 0x86: 2])
+		def cmd = zwave.parse(description, [0x31: 5, 0x71:3, 0x7A: 2, 0x84: 2, 0x86: 2])
 		if (cmd) {
 			result = zwaveEvent(cmd)
 		}
@@ -219,7 +210,7 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
-	def encapsulatedCommand = cmd.encapsulatedCommand([0x31: 5, 0x7A: 2, 0x84: 2, 0x86: 2])
+	def encapsulatedCommand = cmd.encapsulatedCommand([0x31: 5, 0x71: 3, 0x7A: 2, 0x84: 2, 0x86: 2])
 	state.sec = 1
 	// if (state.debug) log.debug "encapsulated: ${encapsulatedCommand}"
 	if (encapsulatedCommand) {
@@ -309,10 +300,14 @@ def motionEvent(value) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
-	setConfigured()
 	motionEvent(cmd.sensorValue)
+    if (state.debug) log.debug "---SENSOR BINARY REPORT V2--- ${device.displayName} reports: ${cmd.cmd.sensorValue}"
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
+	motionEvent(cmd.value)
+    if (state.debug) log.debug "---BASIC REPORT V1--- ${device.displayName} reports: ${cmd.value}"
+}
 
 def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cmd) {
 	def result = []
@@ -370,19 +365,15 @@ def configure() {
 	}
     if (state.debug) 	log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
 	def request = [
-		// set wakeup interval to 5 mins
-		zwave.wakeUpV1.wakeUpIntervalSet(seconds:300, nodeid:zwaveHubNodeId),
+		// set wakeup interval to 20 mins
+		zwave.wakeUpV1.wakeUpIntervalSet(seconds:1200, nodeid:zwaveHubNodeId),
 		
 		// Get Version information
         zwave.versionV1.versionGet(),
         zwave.firmwareUpdateMdV2.firmwareMdGet(),
     	
-		// send battery every 20 hours
-		zwave.configurationV1.configurationSet(parameterNumber: 0x66, size: 4, scaledConfigurationValue: 1),
-		zwave.configurationV1.configurationSet(parameterNumber: 0x70, size: 4, scaledConfigurationValue: 20*60*60),
-		
         // send no-motion report x minutes after motion stops
-		zwave.configurationV1.configurationSet(parameterNumber: 0x05, size: 2, scaledConfigurationValue: MotionRst),
+		zwave.configurationV1.configurationSet(parameterNumber: 0x05, size: 1, scaledConfigurationValue: MotionRst),
 		zwave.configurationV1.configurationGet(parameterNumber: 0x05),
     	
 		// set motion sensor sensitivity
@@ -405,13 +396,14 @@ def configure() {
         zwave.batteryV1.batteryGet(),
 		zwave.sensorBinaryV2.sensorBinaryGet(),
         zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:1, scale:1),
-        zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:3),
-        zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:5),
+        zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:3, scale:0),
+        zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:5, scale:0),
         
 		// Can use the zwaveHubNodeId variable to add the hub to the device's associations:
 		zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
     ]
 	commands(request) + ["delay 20000", zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
+	//setConfigured()
 }
 
 private setConfigured() {
