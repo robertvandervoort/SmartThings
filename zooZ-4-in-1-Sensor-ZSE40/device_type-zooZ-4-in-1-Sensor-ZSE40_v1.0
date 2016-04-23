@@ -31,7 +31,7 @@
 		attribute "tamper", "enum", ["detected", "clear"]
 		fingerprint deviceId: "0x0701", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x31,0x70,0x5A,0x98,0x7A"
 		}
-	simulator {
+/*	simulator {
 		status "no motion" : "command: 9881, payload: 00300300"
 		status "motion"    : "command: 9881, payload: 003003FF"
         status "clear" : " command: 9881, payload: 0071050000000007030000"
@@ -77,6 +77,7 @@
 			).incomingMessage()
 		status "wake up": "command: 8407, payload:"
 	}
+*/
 	tiles (scale: 2) {
 		multiAttributeTile(name:"main", type:"generic", width:6, height:4, canChangeIcon: true, canChangeBackground: true) {
 			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
@@ -117,8 +118,11 @@
 		standardTile("configure","device.configure", decoration: "flat", width: 2, height: 2) {
 			state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
 		}
+        chartTile(name: "temperatureChart", attribute: "device.temperature") {
+	        state "stopCrashingAndroid", label:'${currentValue}'
+        }
 		main(["main"])
-		details(["main","humidity","illuminance","motion","acceleration","battery","configure"])
+		details(["main","humidity","illuminance","motion","acceleration","battery","configure","temperatureChart"])
 	}
 	
     preferences {
@@ -126,40 +130,41 @@
 			title: "Enable debug logging?",
 			defaultValue: false,
 			displayDuringSetup: true
-		input "tempoffset",
-			"number",
+		input "temperaturescale", "enum",
+			title: "Temperature Scale",
+			options: ["Fahrenheight", "Celcius"],
+            defaultValue: "Fahrenheight",
+			required: false,
+			displayDuringSetup: true
+		input "tempoffset", "number",
 			title: "Temperature offset",
             description: "Enter a value 1-50 raising temp in .1 degree increments.",
             range: "1..50",
 			defaultValue: 1,
             required: false,
             displayDuringSetup: false
-		input "humidityoffset",
-        	"number",
+		input "humidityoffset", "number",
             title: "Humidity offset",
             description: "Set up from 1%-50%)",
 			range: "1..50",
 			defaultValue: 10,
 			required: false,
             displayDuringSetup: false
-		input "luminanceoffset",
-          	"number",
+		input "luminanceoffset", "number",
             title: "Luminance offset",
             description: "0 disables light reporting, positive value are from 1% to 50%",
             range: "0..50",
 			defaultValue: 10,
             required: false,
 	        displayDuringSetup: false
-		input "PIRsensitivity",
-	        "number",
+		input "PIRsensitivity", "number",
     	    title: "PIR motion sensitivity",
 			description: "A value from 1-7, from high to low sensitivity (1 is highest)",
 			range: "1..7",
 			defaultValue: 4,
 			required: true,
 			displayDuringSetup: true
-		input "MotionReset",
-	        "number",
+		input "MotionReset", "number",
     	    title: "PIR reset time",
 			description: "Number of minutes to wait to report motion cleared after a motion event if there is no motion detected.",
 			range: "1..255",
@@ -186,7 +191,7 @@ def parse(String description)
 		result = createEvent( name: "secureInclusion", value: "failed", isStateChange: true,
 			descriptionText: "This sensor failed to complete the network security key exchange. If you are unable to control it via SmartThings, you must remove it from your network and add it again.")
 	} else if (description != "updated") {
-		def cmd = zwave.parse(description, [0x31: 5, 0x71:3, 0x7A: 2, 0x84: 2, 0x86: 2])
+		def cmd = zwave.parse(description, [0x31: 5, 0x71:3, 0x7A: 2, 0x81: 1, 0x84: 2, 0x86: 2])
 		if (cmd) {
 			result = zwaveEvent(cmd)
 		}
@@ -210,7 +215,7 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
-	def encapsulatedCommand = cmd.encapsulatedCommand([0x31: 5, 0x71: 3, 0x7A: 2, 0x84: 2, 0x86: 2])
+	def encapsulatedCommand = cmd.encapsulatedCommand([0x31: 5, 0x71: 3, 0x7A: 2, 0x81: 1, 0x84: 2, 0x86: 2])
 	state.sec = 1
 	// if (state.debug) log.debug "encapsulated: ${encapsulatedCommand}"
 	if (encapsulatedCommand) {
@@ -284,12 +289,11 @@ def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelR
 			map.descriptionText = cmd.toString()
 	}
 	createEvent(map)
-    if (state.debug) log.debug "---SENSOR MULTILEVEL REPORT V5--- ${device.displayName} reports: sensorType:${cmd.sensorType}, sensorValue: ${cmd.sensorValue}, scaledSensorValue:${cmd.scaledSensorValue}, scale:${cmd.scale}, precision:${cmd.precision}, payload: ${cmd.payload}"
 }
 
 def motionEvent(value) {
 	def map = [name: "motion"]
-	if (value) {
+	if (value > 0) {
 		map.value = "active"
 		map.descriptionText = "$device.displayName detected motion"
 	} else {
@@ -340,20 +344,27 @@ def configure() {
 	//	if (state.debug) log.debug "4-in-1 sensor not sending configure until secure"
 	//	return []
 	//}
-	if (state.debug) log.debug "--Sending configuration command to zooZ 4-in-1 sensor--"
+	if (state.debug) log.debug "--Sending configuration commands to zooZ 4-in-1 sensor--"
     if (state.debug) log.debug "Prefernces settings: PIRsensitivity: $PIRsensitivity, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset"
 	
 	def PIRsens = 4
 	if (PIRsensitivity) {
-		PIRsens=PIRsensitivity.toInteger()
+		PIRsens=PIRsensitivity
 	}
     def MotionRst = 3
 	if (MotionReset) {
-		MotionRst=MotionReset.toInteger()
+		MotionRst=MotionReset
 	}
 	def tempoff = 1
 	if (tempoffset) {
 		tempoff=tempoffset
+	}
+	def tempscale = 1
+	if (temperaturescale == "Fahrenheight") {
+    	tempscale=1
+    }
+	else {
+    	tempscale=0
 	}
 	def humidityoff = 10
 	if (humidityoffset) {
@@ -363,7 +374,7 @@ def configure() {
 	if (luminanceoffset) {
 		luminanceoff=luminanceoffset
 	}
-    if (state.debug) 	log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
+    if (state.debug) log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
 	def request = [
 		// set wakeup interval to 20 mins
 		zwave.wakeUpV1.wakeUpIntervalSet(seconds:1200, nodeid:zwaveHubNodeId),
@@ -371,16 +382,10 @@ def configure() {
 		// Get Version information
         zwave.versionV1.versionGet(),
         zwave.firmwareUpdateMdV2.firmwareMdGet(),
-    	
-        // send no-motion report x minutes after motion stops
-		zwave.configurationV1.configurationSet(parameterNumber: 0x05, size: 1, scaledConfigurationValue: MotionRst),
-		zwave.configurationV1.configurationGet(parameterNumber: 0x05),
-    	
-		// set motion sensor sensitivity
-        zwave.configurationV1.configurationSet(parameterNumber: 0x06, size: 1, scaledConfigurationValue: PIRsens),
-
-        // configure temp to fahrenheight and set offset
-		zwave.configurationV1.configurationSet(parameterNumber: 0x01, size: 1, scaledConfigurationValue: 1),
+		
+        // configure temp scale to celcius or fahrenheight and set offset
+		zwave.configurationV1.configurationSet(parameterNumber: 0x01, size: 1, scaledConfigurationValue: tempscale),
+		zwave.configurationV1.configurationGet(parameterNumber: 0x01),
 		zwave.configurationV1.configurationSet(parameterNumber: 0x02, size: 1, scaledConfigurationValue: tempoff),		
 		zwave.configurationV1.configurationGet(parameterNumber: 0x02),
 		
@@ -392,10 +397,21 @@ def configure() {
 		zwave.configurationV1.configurationSet(parameterNumber: 0x04, size: 1, scaledConfigurationValue: luminanceoff),
 		zwave.configurationV1.configurationGet(parameterNumber: 0x04),
 		
+		// send no-motion report x minutes after motion stops
+		zwave.configurationV1.configurationSet(parameterNumber: 0x05, size: 1, scaledConfigurationValue: MotionRst),
+		zwave.configurationV1.configurationGet(parameterNumber: 0x05),
+    	
+		// set motion sensor sensitivity
+        zwave.configurationV1.configurationSet(parameterNumber: 0x06, size: 1, scaledConfigurationValue: PIRsens),
+		zwave.configurationV1.configurationGet(parameterNumber: 0x06),
+		
+        // set LED behavior
+        zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 3),
+        zwave.configurationV1.configurationGet(parameterNumber: 0x07),
+		
 		// get updated battery and sensor data
         zwave.batteryV1.batteryGet(),
-		zwave.sensorBinaryV2.sensorBinaryGet(),
-        zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:1, scale:1),
+		zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:1, scale:1),
         zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:3, scale:0),
         zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType:5, scale:0),
         
