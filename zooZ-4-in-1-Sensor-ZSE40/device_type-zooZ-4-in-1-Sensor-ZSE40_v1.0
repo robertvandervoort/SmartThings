@@ -130,6 +130,12 @@
 			title: "Enable debug logging?",
 			defaultValue: false,
 			displayDuringSetup: true
+		input "LEDbehavior", "enum",
+			title: "LED Behavior",
+			options: ["LED Off", "Breathing", "Quick Blink on Temp/PIR"],
+            defaultValue: "Quick Blink on Temp/PIR",
+			required: false,
+			displayDuringSetup: false
 		input "temperaturescale", "enum",
 			title: "Temperature Scale",
 			options: ["Fahrenheight", "Celcius"],
@@ -176,11 +182,8 @@
 
 def updated()
 {
+	updateDataValue("configured", "false")
 	state.debug = ("true" == debugOutput)
-	if (state.sec && !isConfigured()) {
-		// in case we miss the SCSR
-		response(configure())
-	}
 }
 
 def parse(String description)
@@ -345,8 +348,17 @@ def configure() {
 	//	return []
 	//}
 	if (state.debug) log.debug "--Sending configuration commands to zooZ 4-in-1 sensor--"
-    if (state.debug) log.debug "Prefernces settings: PIRsensitivity: $PIRsensitivity, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset"
-	
+    //if (state.debug) log.debug "Prefernces settings: PIRsensitivity: $PIRsensitivity, Temp offset: $tempoffset, Humidity offset: $humidityoffset, Luminance offset: $luminanceoffset"
+	def LEDbehav = 3
+	if (LEDbehavior == "LED Off") {
+    	LEDbehav=1
+    }
+	else if (LEDbehavior == "Breathing") {
+    	LEDbehav=2
+	}
+	else {
+		LEDbehav=3
+	}	
 	def PIRsens = 4
 	if (PIRsensitivity) {
 		PIRsens=PIRsensitivity
@@ -406,7 +418,7 @@ def configure() {
 		zwave.configurationV1.configurationGet(parameterNumber: 0x06),
 		
         // set LED behavior
-        zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: 3),
+        zwave.configurationV1.configurationSet(parameterNumber: 0x07, size: 1, scaledConfigurationValue: LEDbehav),
         zwave.configurationV1.configurationGet(parameterNumber: 0x07),
 		
 		// get updated battery and sensor data
@@ -419,7 +431,7 @@ def configure() {
 		zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
     ]
 	commands(request) + ["delay 20000", zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
-	//setConfigured()
+	setConfigured()
 }
 
 private setConfigured() {
