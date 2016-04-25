@@ -34,7 +34,7 @@
    The first things should be configration settings present on the sensor and any data coming from the sensor. If you do not ever see any data coming from the sensor, please post to the community or
    message me via github or the SmartThings community. 
  */
-
+ 
  metadata {
 	definition (name: "zooZ 4-in-1 sensor - RV 1.0", namespace: "robertvandervoort", author: "Robert Vandervoort") {
 		capability "Motion Sensor"
@@ -50,7 +50,7 @@
 		attribute "tamper", "enum", ["detected", "clear"]
 		fingerprint deviceId: "0x0701", inClusters: "0x5E,0x86,0x72,0x59,0x85,0x73,0x71,0x84,0x80,0x31,0x70,0x5A,0x98,0x7A"
 		}
-/*	simulator {
+simulator {
 		status "no motion" : "command: 9881, payload: 00300300"
 		status "motion"    : "command: 9881, payload: 003003FF"
         status "clear" : " command: 9881, payload: 0071050000000007030000"
@@ -96,11 +96,15 @@
 			).incomingMessage()
 		status "wake up": "command: 8407, payload:"
 	}
-*/
 	tiles (scale: 2) {
-		multiAttributeTile(name:"main", type:"generic", width:6, height:4, canChangeIcon: true, canChangeBackground: true) {
-			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
-            	attributeState "temperature",label:'${currentValue}°',backgroundColors:[
+		multiAttributeTile(name:"main", type: "generic", width: 6, height: 4){
+			tileAttribute ("device.motion", key: "PRIMARY_CONTROL") {
+				attributeState "active", label:'motion', icon:"st.motion.motion.active", backgroundColor:"#53a7c0"
+				attributeState "inactive", label:'no motion', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff"
+			}
+		}
+		valueTile("temperature","device.temperature", width: 2, height: 2) {
+            	state "temperature",label:'${currentValue}', unit:"${unit}", backgroundColors:[
                 	[value: 32, color: "#153591"],
                     [value: 44, color: "#1e9cbb"],
                     [value: 59, color: "#90d2a7"],
@@ -109,14 +113,6 @@
 					[value: 92, color: "#d04e00"],
 					[value: 98, color: "#bc2323"]
 				]
-            }
-            tileAttribute("device.humidity", key: "SECONDARY_CONTROL") {
-                attributeState "humidity",label:'RH ${currentValue} %',unit:"%"
-            }
-		}
-        standardTile("motion","device.motion", width: 2, height: 2) {
-            	state "active",label:'motion',icon:"st.motion.motion.active",backgroundColor:"#53a7c0"
-                state "inactive",label:'no motion',icon:"st.motion.motion.inactive",backgroundColor:"#ffffff"
 			}
 		valueTile("humidity","device.humidity", width: 2, height: 2) {
            	state "humidity",label:'RH ${currentValue}',unit:"%"
@@ -134,15 +130,9 @@
 		valueTile("battery", "device.battery", decoration: "flat", width: 2, height: 2) {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-		standardTile("configure","device.configure", decoration: "flat", width: 2, height: 2) {
-			state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
-		}
-        chartTile(name: "temperatureChart", attribute: "device.temperature") {
-	        state "stopCrashingAndroid", label:'${currentValue}'
-        }
 		main(["main"])
-		details(["main","humidity","illuminance","motion","acceleration","battery","configure","temperatureChart"])
-	}
+		details(["main","temperature","humidity","illuminance","acceleration","battery"])
+	}	
     preferences {
 		input "debugOutput", "boolean", 
 			title: "Enable debug logging?",
