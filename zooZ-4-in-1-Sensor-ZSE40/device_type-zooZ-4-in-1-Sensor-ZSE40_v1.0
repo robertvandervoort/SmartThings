@@ -308,12 +308,10 @@ def motionEvent(value) {
 
 def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
 	motionEvent(cmd.sensorValue)
-    if (state.debug) log.debug "---SENSOR BINARY REPORT V2--- ${device.displayName} reports: ${cmd.cmd.sensorValue}"
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
 	motionEvent(cmd.value)
-    if (state.debug) log.debug "---BASIC REPORT V1--- ${device.displayName} reports: ${cmd.value}"
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cmd) {
@@ -322,10 +320,10 @@ def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cm
 		switch (cmd.event) {
 			case 0:
 				result << motionEvent(0)
-				result << createEvent(name: "acceleration", value: "inactive", descriptionText: "$device.displayName tamper cleared")
+				result << createEvent(name: "acceleration", value: "inactive", descriptionText: "The cover was replaced on $device.displayName")
 				break
 			case 3:
-				result << createEvent(name: "acceleration", value: "active", descriptionText: "$device.displayName was moved")
+				result << createEvent(name: "acceleration", value: "active", descriptionText: "The cover was removed from $device.displayName")
 				break
 			case 7:
 				result << motionEvent(1)
