@@ -144,12 +144,6 @@ simulator {
             defaultValue: "Quick Blink on Temp/PIR",
 			required: false,
 			displayDuringSetup: false
-		input "temperaturescale", "enum",
-			title: "Temperature Scale",
-			options: ["Fahrenheight", "Celcius"],
-            defaultValue: "Fahrenheight",
-			required: false,
-			displayDuringSetup: true
 		input "tempoffset", "number",
 			title: "Temperature offset",
             description: "Enter a value 1-50 raising temp in .1 degree increments.",
@@ -380,13 +374,6 @@ def configure() {
 	if (tempoffset) {
 		tempoff=tempoffset
 	}
-	def tempscale = 1
-	if (temperaturescale == "Fahrenheight") {
-    	tempscale=1
-    }
-	else {
-    	tempscale=0
-	}
 	def humidityoff = 10
 	if (humidityoffset) {
 		humidityoff=humidityoffset
@@ -406,7 +393,7 @@ def configure() {
         zwave.firmwareUpdateMdV2.firmwareMdGet(),
 		
         // configure temp scale to celcius or fahrenheight and set offset
-		zwave.configurationV1.configurationSet(parameterNumber: 0x01, size: 1, scaledConfigurationValue: tempscale),
+		zwave.configurationV1.configurationSet(parameterNumber: 0x01, size: 1, scaledConfigurationValue: 1),
 		zwave.configurationV1.configurationGet(parameterNumber: 0x01),
 		zwave.configurationV1.configurationSet(parameterNumber: 0x02, size: 1, scaledConfigurationValue: tempoff),		
 		zwave.configurationV1.configurationGet(parameterNumber: 0x02),
