@@ -174,14 +174,14 @@ simulator {
 			description: "A value from 1-7, from high to low sensitivity (1 is highest)",
 			range: "1..7",
 			defaultValue: 4,
-			required: true,
+			required: false,
 			displayDuringSetup: true
 		input "MotionReset", "number",
     	    title: "PIR reset time",
 			description: "Number of minutes to wait to report motion cleared after a motion event if there is no motion detected.",
 			range: "1..255",
 			defaultValue: 3,
-			required: true,
+			required: false,
 			displayDuringSetup: true            
 	}
 }
