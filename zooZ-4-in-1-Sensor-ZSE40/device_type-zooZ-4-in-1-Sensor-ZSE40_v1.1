@@ -138,14 +138,8 @@
 		valueTile("battery", "device.battery", decoration: "flat", width: 2, height: 2) {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-		standardTile("configure","device.configure", decoration: "flat", width: 2, height: 2) {
-			state "configure", label:'config', action:"configure", icon:"st.secondary.tools"
-		}
-        chartTile(name: "temperatureChart", attribute: "device.temperature") {
-	        state "stopCrashingAndroid", label:'${currentValue}'
-        }
 		main(["main"])
-		details(["main","humidity","illuminance","motion","acceleration","battery","configure","temperatureChart"])
+		details(["main","humidity","illuminance","motion","acceleration","battery"])
 	}
     preferences {
 		input "debugOutput", "boolean", 
