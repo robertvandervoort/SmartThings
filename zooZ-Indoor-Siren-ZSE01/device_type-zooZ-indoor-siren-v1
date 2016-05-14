@@ -18,7 +18,7 @@
 		capability "Alarm"
         capability "Battery"
 		capability "Switch"
- 		capability "Configuration"
+        capability "Sensor"
 		capability "Polling"
 		capability "Refresh"
 
@@ -65,7 +65,7 @@ def parse(String description)
 {
 	def result = null
 	if (description != "updated") {
-		def cmd = zwave.parse(description, [])
+		def cmd = zwave.parse(description, [0x25: 1])
 		if (cmd) {
 			result = zwaveEvent(cmd)
 		}
@@ -107,6 +107,11 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport 
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
     if (state.debug) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} parameter ${cmd.parameterNumber} with a byte size of ${cmd.size} is set to ${cmd.configurationValue}"
+}
+
+def zwaveEvent(physicalgraph.zwave.commands.deviceresetlocallyv1.DeviceResetLocallyNotification cmd) {
+    if (state.debug) log.debug "---DEVICE RESET LOCALLY V1--- ${device.displayName} ${cmd}"
+    createEvent(descriptionText: cmd.toString(), isStateChange: true, displayed: true)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.powerlevelv1.PowerlevelTestNodeReport cmd) {
@@ -192,6 +197,11 @@ def siren() {
 	on()
 }
 
+def both() {
+	if (state.debug) log.debug "Siren and Strobe commands received"
+	on()
+}
+
 def on() {
 	if (state.debug) log.debug "Sounding Alarm : ${device.displayName}"
 	def request = [
@@ -218,7 +228,7 @@ def configure() {
 		zwave.wakeUpV1.wakeUpIntervalSet(seconds:1200, nodeid:zwaveHubNodeId),
 		
 		// Can use the zwaveHubNodeId variable to add the hub to the device's associations:
-		// zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
+		// zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId),
 		
 		//Get association
 		zwave.associationV1.associationGet(groupingIdentifier:1),
