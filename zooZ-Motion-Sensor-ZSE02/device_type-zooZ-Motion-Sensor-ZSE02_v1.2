@@ -110,7 +110,7 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 		result += response(configure())
 	} else if (isConfigured()){
 		cmds << zwave.batteryV1.batteryGet().format()
-		cmds << "delay 1200"
+		cmds << "delay 3000"
 		cmds << zwave.wakeUpV1.wakeUpNoMoreInformation().format()
 		[result, response(cmds)]
 	}
@@ -131,6 +131,8 @@ def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
+	if (state.debug) log.debug "---BATTERY V1 REPORT--- ${device.displayName} reports battery level of ${cmd.batteryLevel}"
+	def result = []
 	def map = [ name: "battery", unit: "%" ]
 	if (cmd.batteryLevel == 0xFF) {
 		map.value = 1
@@ -142,8 +144,8 @@ def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
 		map.isStateChange = true
 	}
 	state.lastbatt = now()
-	createEvent(map)
-	if (state.debug) log.debug "---BATTERY V1 REPORT--- ${device.displayName} reports battery level of ${cmd.batteryLevel}"
+	result << createEvent(map)
+	result
 }
 
 def motionEvent(value) {
@@ -173,7 +175,7 @@ if (cmd.notificationType == 7) {
     else if (cmd.event == 0x03) {
     	result << createEvent(name: "acceleration", value: "active", descriptionText: "$device.displayName has been deactivated by the switch.")
 		}
-	else if (cmd.event == 0X00 || cmd.eventParameter == 0x03) {
+	else if (cmd.eventParameter == [3] && cmd.event == 0X00) {
 		result << createEvent(name: "acceleration", value: "inactive", descriptionText: "$device.displayName has been reactivated by the switch.")
     }
 	else if (cmd.event == 0x08) {
