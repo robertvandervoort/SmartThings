@@ -124,10 +124,10 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 		// we're still in the process of configuring a newly joined device
 		if (state.debug) log.debug("late configure")
 		result += response(configure())
-	} else {
+	} else if (isConfigured()){
 		cmds << zwave.batteryV1.batteryGet().format()
 		cmds << "delay 1200"
-		cmds << zwave.wakeUpV2.wakeUpNoMoreInformation().format()
+		cmds << zwave.wakeUpV1.wakeUpNoMoreInformation().format()
 		[result, response(cmds)]
 	}
 }
