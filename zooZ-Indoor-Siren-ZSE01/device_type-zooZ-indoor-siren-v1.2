@@ -177,9 +177,6 @@ def configure() {
     if (state.debug) log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
     setConfigured()
 	def request = [
-		// Can use the zwaveHubNodeId variable to add the hub to the device's associations:
-		// zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId),
-		
 		//Get association
 		zwave.associationV1.associationGet(groupingIdentifier:1),
         zwave.associationV1.associationGet(groupingIdentifier:2),

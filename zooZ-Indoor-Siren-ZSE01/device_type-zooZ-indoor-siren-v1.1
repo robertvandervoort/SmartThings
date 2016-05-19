@@ -23,6 +23,7 @@
 		capability "Refresh"
 
 		command "reset"
+		command "getbatt"
 		// RAW DESCRIPTION: 0 0 0x1005 0 0 0 9 0x5E 0x86 0x72 0x73 0x85 0x59 0x25 0x20 0x27
 		fingerprint deviceId: "0x1005", inClusters: "0x5E 0x86 0x72 0x73 0x85 0x59 0x25 0x20 0x27", manufacturer: "zooZ", model: "ZSE01"
         
@@ -150,8 +151,8 @@ def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cm
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
 	if (state.debug) log.debug "---BASIC REPORT V1--- ${device.displayName} sent value: ${cmd.value}"
 	[
-		createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true]),
-		createEvent([name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true])
+		createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true]),
+		createEvent([name: "alarm", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true])
 	]
 }
 
@@ -162,7 +163,7 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
 
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	if (state.debug) log.debug "---SWITCH BINARY REPORT V1--- ${device.displayName} sent value: ${cmd.value}"
-	[name: "alarm", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true]
+	[name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true]
 }
 	
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinarySet cmd) {
