@@ -1,5 +1,5 @@
 /*
- * V 1.1 of zooZ 4-in-1 sensor code 4/20/2016
+ * V 1.2 of zooZ 4-in-1 sensor code 6/12/2016
  * by Robert Vandervoort
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -41,9 +41,9 @@
    It will then poll the sensors for data. If you do not ever see any data coming from the sensor, please post to the community or
    message me via github or the SmartThings community. 
  */
-
+ 
  metadata {
-	definition (name: "zooZ 4-in-1 sensor - RV 1.1", namespace: "robertvandervoort", author: "Robert Vandervoort") {
+	definition (name: "zooZ 4-in-1 sensor - RV 1.2", namespace: "robertvandervoort", author: "Robert Vandervoort") {
 		capability "Motion Sensor"
 		capability "Acceleration Sensor"
 		capability "Temperature Measurement"
@@ -153,24 +153,24 @@
 			required: false,
 			displayDuringSetup: false
 		input "tempoffset", "number",
-			title: "Temperature offset",
-            description: "Enter a value 1-50 raising temp in .1 degree increments.",
+			title: "Reporting threshold  for temp",
+            description: "Enter a value 1-50 changing reporting threshold for temp. Represents 0.1 degree increments.",
             range: "1..50",
-			defaultValue: 1,
+			defaultValue: 50,
             required: false,
             displayDuringSetup: false
 		input "humidityoffset", "number",
-            title: "Humidity offset",
-            description: "Set up from 1%-50%)",
+            title: "Reporting threshold for humidity",
+            description: "Report when change occurs from 1%-50% RH)",
 			range: "1..50",
-			defaultValue: 10,
+			defaultValue: 1,
 			required: false,
             displayDuringSetup: false
 		input "luminanceoffset", "number",
-            title: "Luminance offset",
-            description: "0 disables light reporting, positive value are from 1% to 50%",
-            range: "0..50",
-			defaultValue: 10,
+            title: "Reporting threshold for Luminance",
+            description: "valid values from 5% to 50%",
+            range: "5..50",
+			defaultValue: 5,
             required: false,
 	        displayDuringSetup: false
 		input "PIRsensitivity", "number",
@@ -184,7 +184,7 @@
     	    title: "PIR reset time",
 			description: "Number of minutes to wait to report motion cleared after a motion event if there is no motion detected.",
 			range: "1..255",
-			defaultValue: 3,
+			defaultValue: 5,
 			required: false,
 			displayDuringSetup: true            
 	}
@@ -221,7 +221,7 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd)
 		if (state.debug) log.debug("late configure")
 		result += response(configure())
 	} else {
-		result += response(zwave.wakeUpV1.wakeUpNoMoreInformation())
+		result += response(checkBattery())
 	}
 	result
 }
@@ -353,6 +353,14 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {
 	createEvent(descriptionText: cmd.toString(), isStateChange: false)
 }
 
+private checkBattery() {
+	def request = [
+		zwave.batteryV1.batteryGet(),
+		zwave.wakeUpV1.wakeUpNoMoreInformation()
+		]
+	commands(resuest)
+}
+
 def configure() {
 	// This sensor joins as a secure device if you double-click the button to include it
 	//if (device.device.rawDescription =~ /98/ && !state.sec) {
@@ -410,7 +418,7 @@ def configure() {
     setConfigured()
 	def request = [
 		// set wakeup interval to 20 mins
-		zwave.wakeUpV1.wakeUpIntervalSet(seconds:1200, nodeid:zwaveHubNodeId),
+		zwave.wakeUpV1.wakeUpIntervalSet(seconds:3600, nodeid:zwaveHubNodeId),
 		
 		// Get Version information
         zwave.versionV1.versionGet(),
