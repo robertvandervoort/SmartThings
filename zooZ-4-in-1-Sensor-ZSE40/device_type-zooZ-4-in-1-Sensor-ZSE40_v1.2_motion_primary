@@ -132,7 +132,7 @@ simulator {
 			state("inactive", label:'clear', icon:"st.motion.acceleration.inactive", backgroundColor:"#00ff00")
 		}
 		valueTile("battery", "device.battery", decoration: "flat", width: 2, height: 2) {
-			state "battery", label:'${currentValue}% battery', unit:""
+			state "battery", label:'${currentValue}% battery'
 		}
 		main(["main"])
 		details(["main","temperature","humidity","illuminance","acceleration","battery"])
@@ -267,8 +267,10 @@ def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
 		map.value = 1
 		map.descriptionText = "${device.displayName} battery is low"
 		map.isStateChange = true
+		createEvent(map)
 	} else {
 		map.value = cmd.batteryLevel
+		createEvent(map)
 	}
 	state.lastbatt = now()
 	createEvent(map)
