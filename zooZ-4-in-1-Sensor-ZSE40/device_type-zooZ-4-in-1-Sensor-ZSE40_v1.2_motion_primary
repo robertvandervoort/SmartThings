@@ -200,7 +200,7 @@ def parse(String description)
 		result = createEvent( name: "secureInclusion", value: "failed", isStateChange: true,
 			descriptionText: "This sensor failed to complete the network security key exchange. If you are unable to control it via SmartThings, you must remove it from your network and add it again.")
 	} else if (description != "updated") {
-		def cmd = zwave.parse(description, [0x31: 5, 0x71:3, 0x7A: 2, 0x81: 1, 0x84: 2, 0x86: 2])
+		def cmd = zwave.parse(description, [0x31: 5, 0x71:3, 0x7A: 2, 0x81: 1, 0x84: 2, 0x86: 1])
 		if (cmd) {
 			result = zwaveEvent(cmd)
 		}
