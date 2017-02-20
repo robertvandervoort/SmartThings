@@ -118,7 +118,7 @@
 			title: "LED Behavior",
             description: "0=energy tracking, 1=momentary status, 2=night light",
 			defaultValue: 0, 
-			displayDuringSetup: true,
+			displayDuringSetup: true
 		input "monitorInterval", "integer", 
 			title: "Monitoring Interval", 
 			description: "The time interval in seconds for sending device reports", 
