@@ -1,5 +1,5 @@
 /*
- * V 0.4 of Aeon Doorbell code 11/24/2015
+ * V 0.4 of Aeon Doorbell code 10/4/2017
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
@@ -15,6 +15,8 @@
  *	v 0.2 - added separate preference for alarm triggering so a different ringtone can be used for alarm VS doorbell. created
  *	separate test buttons for doorbell and alarm
  *	v 0.3 - added firmware version and checksum reporting as part of the config command, modifed the way the battery check works, may need to redress it later
+ *  v 0.4 - added motion activation capability when doorbell or alerm is rung. you can use this to trigger smart home monitor by adding the doorbell as a motion
+ *  sensor and have this trigger a siren or another doorbell's alrm tone for multi doorbell houses
  */
 
 metadata {
@@ -26,6 +28,7 @@ metadata {
         capability "Configuration"
         capability "Refresh"
         capability "Music Player"
+        capability "Motion Sensor"
 
         command "atest"
         command "btest"
@@ -87,8 +90,12 @@ metadata {
         controlTile("testSoundSlider", "device.playTrack", "slider", width: 4, height: 2, inactiveLabel: false, range:"(1..99)") {
             state "testSound", action:"playTrack", backgroundColor: "#1e9cbb"
         }
+        standardTile("motion","device.motion", width: 2, height: 2) {
+           	state "active",label:'motion',icon:"st.motion.motion.active",backgroundColor:"#53a7c0"
+            state "inactive",label:'no motion',icon:"st.motion.motion.inactive",backgroundColor:"#ffffff"
+		}
         main "alarm"
-        details(["alarm","btest","atest","off","testSoundLabel","testSoundSlider","battery","setRingtone","setVolume","refresh","configure"])
+        details(["alarm","btest","atest","off","testSoundLabel","testSoundSlider","battery","setRingtone","setVolume","refresh","motion","configure"])
     }
 
     preferences {
@@ -124,6 +131,12 @@ metadata {
                 range: "1..100",
                 required: false,
                 displayduringSetup: true
+		input "motionEnabled", "boolean",
+        		title: "Motion event on ring?",
+                description: "Generate motion for triggering other doorbells or alarm",
+                defaultValue: false,
+                required: false,
+                displayduringSetup: true
     }
 }
 
@@ -150,7 +163,7 @@ def parse(String description)
             result = zwaveEvent(cmd)
         }
     }
-    // if (state.debug) log.debug "Parsed '${description}' to ${result.inspect()}"
+    if (state.debug) log.debug "Parsed '${description}' to ${result.inspect()}"
     return result
 }
 
@@ -223,31 +236,32 @@ def zwaveEvent(physicalgraph.zwave.commands.hailv1.Hail cmd) {
     if (state.debug) log.debug "Hail received: ${cmd}"
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd)
-{
-    if (state.debug) log.debug "doorbell value:${cmd.value}"
-    [
-            createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true]),
-            createEvent([name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true])
-    ]
+def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
+    if (state.debug) log.debug "doorbell value:${cmd.value}";
+    sendEvent(name: "switch", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true, descriptiontext: "doorbell");
+    sendEvent(name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true);
+    if (motionEnabled == "true") {
+    	if (cmd.value == 255) {
+    		sendEvent(name: "motion", value: "active", displayed: true, isStateChange: true)
+    	} else {
+    	sendEvent(name: "motion", value: "inactive", displayed: true, isStateChange: true)
+    	}
+	}
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd)
-{
+def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     if (state.debug) log.debug cmd
-    [name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true]
+    createEvent(name: "alarm", value: cmd.value ? "on" : "off", type: "physical", displayed: true, isStateChange: true)
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd)
-{
+def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
     if (state.debug) log.debug cmd
-    [name: "alarm", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true]
+    createEvent(name: "alarm", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true)
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinarySet cmd)
-{
+def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinarySet cmd) {
     if (state.debug) log.debug cmd
-    [name: "alarm", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true]
+    createEvent(name: "alarm", value: cmd.value ? "on" : "off", type: "digital", displayed: true, isStateChange: true)
 }
 
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
@@ -304,6 +318,7 @@ def siren() {
 
 def both() {
     if (state.debug) log.debug "Alarm test command received"
+
     def request = [
             zwave.configurationV1.configurationSet(parameterNumber: 6, size: 1, scaledConfigurationValue: prefAlarmtone.toInteger())
     ]
@@ -346,6 +361,7 @@ def refresh() {
 
 def configure() {
     if (state.debug) {
+		log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
         if (state.sec) {
             log.debug "secure configuration being sent to ${device.displayName}"
         }
